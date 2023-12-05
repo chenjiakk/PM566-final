@@ -1,0 +1,204 @@
+---
+title: "Final Project: The Factors Influence Miami Housing Price"
+author: "Chenjia Kuang"
+output: 
+    html_document:
+        toc: TRUE
+        toc_float: TRUE
+---
+
+## Introduction
+
+This analysis uses an extensive database of 13,932 single-family homes sold in Miami to look into the city's housing market. This dataset explores the several variables that might influence home values. It includes a wide variety of factors, including the total area of the property, location, the distance to important landmarks like railroads and oceans, and more subtle information like the structure quality and the level of airport noise pollution. Understanding the principal factors that influence the value of homes in Miami is not only of scholarly curiosity but also has realistic effects on several customers, including homeowners, property owners, and urban designers.
+
+#### Question
+
+What factors influence the sale prices of single-family homes in Miami?
+
+## Methods
+
+#### Download the data
+
+I download data in csv form from Kaggle <https://www.kaggle.com/datasets/deepcontractor/miami-housing-dataset>
+
+```{r setup, message=FALSE, echo=FALSE, warning=FALSE}
+library('R.utils')
+library('tidyverse')
+library('ggplot2')
+library('data.table')
+library('dtplyr')
+library('dplyr')
+library('scales')
+library('plotly')
+library('DT')
+library('knitr')
+
+opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  eval=TRUE,
+  echo = TRUE,
+  cache = FALSE,
+  fig.width = 7, 
+  fig.align = 'center',
+  fig.asp = 0.618,
+  out.width = "700px")
+```
+
+#### Look at the data
+
+```{r load-data, echo=FALSE}
+setwd("/Users/chenjiak/Downloads")
+miami <- data.table::fread("miami-housing.csv")
+
+tab <- miami[, .(
+             Total_objects = nrow(miami),
+             Total_variables = ncol(miami)
+             )]
+
+knitr::kable(tab)
+```
+
+We checked the dimension of our data and noticed that there are 13932 total observations and 17 different factors for each of our observation. I selected some variables that may effect the house price for further analysis. Then, I did some summaries for the key variables such as the distance to ocean, rail road, central business district, structure quality, and the airport noise level.
+
+```{r echo=FALSE}
+#Rename the columns
+miami <- miami %>%
+  rename("lon" = "LONGITUDE",
+         "lat" = "LATITUDE",
+         "floor_area" = "TOT_LVG_AREA",
+         "land_area"  = "LND_SQFOOT")
+
+#Select the columns
+miami <- miami[, .(lat, lon, SALE_PRC, land_area, floor_area, OCEAN_DIST, RAIL_DIST, CNTR_DIST, avno60plus, structure_quality)]
+
+#Creatint a column about the quality for houses structure
+miami <- miami %>%
+  group_by(structure_quality) %>%
+  mutate(structure.quality = case_when(
+    structure_quality == 1 ~ "Fair",
+    structure_quality == 2 ~ "Average",
+    structure_quality == 3 ~ "Good",
+    structure_quality == 4 ~ "Excellent Quality",
+    structure_quality == 5 ~ "Superior Quality")) %>% collect()
+
+#Creatint a column about the quality for airport noise level
+miami <- miami %>%
+  group_by(avno60plus) %>%
+  mutate(avno60_plus = case_when(
+    avno60plus == 0 ~ "Accpet",
+    avno60plus == 1 ~ "Exceed")) %>% collect()
+
+#Creating price per square foot features
+miami$price_per_land_area <- miami$SALE_PRC / miami$land_area
+miami$price_per_floor_area <- miami$SALE_PRC / miami$floor_area
+```
+
+## Results {.tabset}
+
+### Ocean Distance
+
+```{r echo=FALSE}
+#Creating relation graph for housing saling price and ocean distance which pretty make sense since miami is a  travel city
+ggplot(miami, aes(x = OCEAN_DIST, y = SALE_PRC)) + 
+  geom_point(aes(color = SALE_PRC), alpha = 0.6) + 
+  theme_minimal() +
+  labs(title = "Correlation between ocsan distance and the sale price",
+       x = "Ocean distance", y = "Sale price") +
+  scale_color_gradient(low = "blue", high = "red") + 
+  stat_smooth(method = lm) +
+  theme(legend.position = "none")
+
+```
+
+### Rail Line Distance
+
+```{r echo=FALSE}
+#Creating relation graph for housing saling price and distance to the nearest rail line
+ggplot(miami, aes(x = RAIL_DIST, y = SALE_PRC)) +
+  geom_point(aes(color = SALE_PRC), alpha = 0.6) +
+  theme_minimal() +
+  scale_color_gradient(low = "blue", high = "red") +
+  stat_smooth(method = lm) +
+  labs(title = "Correlation between the distance to the nearest rail line and the sale price",
+       x = "Rail distance", y = "Sale price") +
+  theme(legend.position = "none")
+```
+
+### CBD Distance
+
+```{r echo=FALSE}
+#Creating relation graph for housing saling price and the distance to the Miami central business district
+ggplot(miami, aes(x = CNTR_DIST, y = SALE_PRC)) +
+  geom_point(aes(color = SALE_PRC), alpha = 0.6) +
+  theme_minimal() +
+  scale_color_gradient(low = "blue", high = "red") +
+  stat_smooth(method = lm) +
+  labs(title = "Correlation between the distance to the nearest Miami CBD and the sale price",
+       x = "Central business district distance", y = "Sale price") +
+  theme(legend.position = "none")
+```
+
+### Structure Quality
+
+```{r echo=FALSE}
+#Creating a histogram graph to find out the correlation between house price and the structure quality
+miami %>%
+  filter(!(structure.quality %in% NA)) %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = SALE_PRC, fill = structure.quality)) +
+  labs(title = "Sale price by struvture quality", x = "Sale price", y = "Count") +
+  scale_fill_brewer(palette = "Spectral")
+```
+
+### Airplane Noise Level
+
+```{r echo=FALSE}
+#Creating a histogram graph to find out the correlation between house price and the airplane noise level
+miami %>%
+  filter(!(avno60_plus %in% NA)) %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = SALE_PRC, fill = avno60_plus)) +
+  labs(title = "Sale price by airplane noise level", x = "Sale price", y = "Count") +
+  scale_fill_brewer(palette = "YlGnBu")
+```
+
+### Land area per sq,ft
+
+```{r echo=FALSE}
+#Creating relation graph for housing saling price for land area per square feet and ocean distance
+
+ggplot(miami, aes(x = OCEAN_DIST, y = price_per_land_area)) + 
+  geom_point(aes(color = price_per_land_area), alpha = 0.6) + 
+  theme_minimal() +
+  labs(title = "Correlation between ocsan distance and the price per land area",
+       x = "Ocean distance", y = "Price per land area") +
+  scale_color_gradient(low = "yellow", high = "purple") + 
+  stat_smooth(method = lm) +
+  theme(legend.position = "none")
+```
+
+### Floor area per sq.ft
+
+```{r echo=FALSE}
+#Creating relation graph for housing saling price for floor area per square feet and ocean distance
+
+ggplot(miami, aes(x = OCEAN_DIST, y = price_per_floor_area)) + 
+  geom_point(aes(color = price_per_floor_area), alpha = 0.6) + 
+  theme_minimal() +
+  labs(title = "Correlation between ocsan distance and the price per floor area",
+       x = "Ocean distance", y = "Price per floor area") +
+  scale_color_gradient(low = "yellow", high = "purple") + 
+  stat_smooth(method = lm) +
+  theme(legend.position = "none")
+```
+
+## Conclusion
+
+According to Kaggle's Miami Housing Dataset, home values are affected by distance from the ocean, CBD, floor area, and airport noise level. This implies that consumers are willing to pay for the comfort and luxury of beachfront houses is shown by this trend. The Central Business District's location is another important factor influencing housing values. Because the CBD serves as the city's economic center, homes in nearby areas are often more expensive. On the other hand, it seems that property values are least affected when located near railroads. This result implies that the potential negatives of being close to the train are outweighed by other location-based positives, such as being close to the ocean or the CBD.
+
+It's interesting to see that structural quality has little effect on price, implying that consumers prefer location and size over structural quality. Based on this trend, the market may place a higher value on location and potential than on the condition of the property.
+
+In addition, although it has less impact than being close to the ocean or the city center, airport noise affects house values. In areas where there is a lot of noise pollution from nearby airports, house prices are usually lower. It emphasizes attention to the compromises that consumers take between living comfort and affordability.
+
+At last, the number of square feet of useable space within a building is more effectable than the total land area. This preference might result from the fact that a property's useful living is valued higher in high population density or land-scarce places than the total amount of land it occupies. It is typical of urban property markets where effective use of space is necessary.
