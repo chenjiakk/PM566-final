@@ -59,7 +59,7 @@ tab <- miami[, .(
 knitr::kable(tab)
 ```
 
-We checked the dimension of our data and noticed that there are 13932 total observations and 17 different factors for each of our observation. I selected some variables that may effect the house price for further analysis. Then, I did some summaries for the key variables such as the distance to ocean, rail road, central business district, structure quality, and the airport noise level.
+We checked the dimension of our data and noticed that there are 13932 total observations and 17 different factors for each of our observation. I selected some variables that may effect the house price for further analysis. Then, I did some summaries for the key variables such as the distance to ocean, rail road, central business district, structure quality, and the airport noise level. Also, I compared the price for land and floor area per square feet to find there is any association between them.
 
 ```{r echo=FALSE}
 #Rename the columns
