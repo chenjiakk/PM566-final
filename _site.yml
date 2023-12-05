@@ -7,11 +7,13 @@ navbar:
       href: index.html
     - text: "Lab 12"
       href: 12-lab.html
+    - text: "Final Project"
+      href: final.html
   right:
     - icon: fa-github fa-lg
       href: https://github.com/USCbiostats/PM566
-    - text: "PM566 Home"
-      href: https://uscbiostats.github.io/PM566/
+    - text: "Download Report"
+      href: Report.pdf
 output:
   html_document:
     theme: cosmo
